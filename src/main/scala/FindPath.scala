@@ -1,9 +1,11 @@
 package org.tritsch.scala.wordpath
 
 import scala.annotation.tailrec
-
 import scala.io.Source
-import java.util.concurrent.{Executors, ExecutorService}
+
+import scala.concurrent._
+import scala.concurrent.duration._
+import ExecutionContext.Implicits.global
 
 import com.typesafe.scalalogging.slf4j.Logging
 
@@ -41,21 +43,27 @@ object FindPath extends Logging {
   final def findNeighborsForWord(word: String, dictionary: List[String]): List[String] = {
     logger.debug("Finding neighbors for >" + word + "< ...")
     val neighbors = for(i <- 0 until word.length; pattern = word.updated(i, '.')) yield dictionary.filter(_.matches(pattern))
-    neighbors.flatten.toList.distinct.diff(List(word))
+    val result = neighbors.flatten.toList.distinct.diff(List(word))
+    logger.trace(result.size + ": " + result.mkString(","))
+    result
   }
 
   final def findNeighbors(dictionary: List[String]): Map[String, List[String]] = {
-    val neighbors = for(word <- dictionary) yield findNeighborsForWord(word, dictionary)
-    dictionary.zip(neighbors).toMap
+    val neighbors = dictionary.map(word => future(findNeighborsForWord(word, dictionary)))
+    dictionary.zip(neighbors.map(Await.result(_, Duration(60, SECONDS)))).toMap
   }
 
   final def loadingDictionary(fileName: String, wordLength: Int): List[String] = {
     Source.fromFile(fileName).getLines.filter(_.length == wordLength).map(_.toLowerCase).toList.distinct
   }
 
+  final def findPath(from: String, to: String, dictionary: List[String], allNeighbors: Map[String, List[String]]): List[String] = {
+    List("flux", "flex", "flem", "alem")
+  }
+
   final def main(args: Array[String]): Unit = {
     assert(args.length == 3, "Need 3 parameters - Usage: FindPath <from> <to> <dictionary>")
-    val fromWord = args(0);val toWord = args(1); val dictFileName = args(2)
+    val fromWord = args(0); val toWord = args(1); val dictFileName = args(2)
     assert(fromWord.length == toWord.length, "<from> and <to> must be of the same length")
 
     logger.info("Looking for first shortest path from >" + fromWord + "< to >" + toWord + "< ...")
@@ -69,5 +77,10 @@ object FindPath extends Logging {
     logger.info("Finding neighbors ...")
     val allNeighbors = findNeighbors(dictionary)
     logger.trace(allNeighbors.mkString(","))
+    assert(dictionary.size == allNeighbors.size, "Every word in the dictionary is suppose to have at least one neighbor")
+    val path = findPath(fromWord, toWord, dictionary, allNeighbors)
+    println(path.mkString("->"))
+
+    logger.info("... done!")
   }
 }

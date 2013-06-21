@@ -11,3 +11,4 @@ log/
 
 # ensime
 .ensime
+.ensime_lucene
