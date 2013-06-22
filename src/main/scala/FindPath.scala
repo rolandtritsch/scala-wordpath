@@ -1,6 +1,5 @@
 package org.tritsch.scala.wordpath
 
-import scala.annotation.tailrec
 import scala.io.Source
 
 import scala.concurrent._
@@ -11,32 +10,7 @@ import com.typesafe.scalalogging.slf4j.Logging
 
 /**
  * Look for the shortest path >from< word >to< word by
- * doing a breadth first search to build a/the pool of
- * words that will connect >from< with >to< and then do
- * a recursive depth first on this pool to find all paths
- * >from< >to<.
- *
- * To build the pool we will find all neighbors to
- * a given list of words (the list of words found
- * on the previous level). To avoid loops, we will
- * remove all words that we have already found (on
- * all levels) from this list, will then add this
- * list to the pool of words already found and will
- * finally check if >to< is in the pool. If not we
- * need to go one level down, otherwise we are done.
- *
- * After we have the pool we do a recursive depth
- * first to find a/all paths >from< >to<.
- *
- * We find a path by starting with a list of >from<
- * words (initially just one). For every word in the
- * list we find all neighbors and intersect it with
- * the pool. We then check, if this list contains the
- * >to< word. If it does we add the >to< word to the
- * currentPath (and with that make it a representation
- * of a valid path/solution) and add this path to the
- * list of solutions. Otherwise we add the current word
- * to the currentPath and go down one level.
+ * doing a breadth first search.
  */
 
 object FindPath extends Logging {
@@ -57,8 +31,17 @@ object FindPath extends Logging {
     Source.fromFile(fileName).getLines.filter(_.length == wordLength).map(_.toLowerCase).toList.distinct
   }
 
-  final def findPath(from: String, to: String, dictionary: List[String], allNeighbors: Map[String, List[String]]): List[String] = {
-    List("flux", "flex", "flem", "alem")
+  final def findPath(toWord: String, allNeighbors: Map[String, List[String]], currentPaths: List[List[String]]): List[String] = {
+    currentPaths.find(_.last == toWord).getOrElse {
+      val nextPaths = currentPaths.map {path =>
+        allNeighbors(path.last).diff(path).map(n => path :+ n)
+      }.flatten
+      for(p <- nextPaths) {
+        logger.trace(p.mkString("->"))
+        assert(p.size == p.distinct.size, "Loop detected: " + p.mkString("->"))
+      }
+      findPath(toWord, allNeighbors, nextPaths)
+    }
   }
 
   final def main(args: Array[String]): Unit = {
@@ -77,8 +60,12 @@ object FindPath extends Logging {
     logger.info("Finding neighbors ...")
     val allNeighbors = findNeighbors(dictionary)
     logger.trace(allNeighbors.mkString(","))
-    assert(dictionary.size == allNeighbors.size, "Every word in the dictionary is suppose to have at least one neighbor")
-    val path = findPath(fromWord, toWord, dictionary, allNeighbors)
+    assert(dictionary.size == allNeighbors.size, "Every word in the dictionary is suppose to have 0-N neighbors")
+
+    logger.info("Find path ...")
+    val start = System.nanoTime
+    val path = findPath(toWord, allNeighbors, List(List(fromWord)))
+    logger.info("Found solution in >" + (System.nanoTime-start)*1e-6 + "< msecs ...")
     println(path.mkString("->"))
 
     logger.info("... done!")
