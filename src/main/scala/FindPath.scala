@@ -30,6 +30,7 @@ import com.typesafe.scalalogging.slf4j.Logging
   * @todo Experiment with depth first searches. Probably finding the longest path.
   * @todo Experiment with tailrec. Not keeping the stack frames should also free up heap.
   * @todo Experiment with par to do some of the mapping in parallel. So far using par makes it perfrorm worse.
+  * @todo Uuupppsss ... ignored the case, when there is no solution, e.g. zyga alem.
   */
 object FindPath extends Logging {
   /** @return all neighbors for a given word */
