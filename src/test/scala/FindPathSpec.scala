@@ -44,10 +44,10 @@ class FindPathSpec extends FlatSpec {
     List("dung", "dunt", "dent", "gent", "geet", "geez"),
     List("doeg", "dong", "song", "sing", "sink", "sick"),
     List("jehu", "jesu", "jest", "gest", "gent", "gena", "guna", "guha"),
-//    List("broo", "brod", "brad", "arad", "adad", "adai", "admi", "ammi", "immi"),
+    List("broo", "proo", "proa", "pria", "aria", "amia", "amma", "ammi", "immi"),
     List("yagi", "yali", "pali", "palp", "paup", "plup", "blup"),
-//    List("bitt", "butt", "burt", "bert", "berm", "germ", "geum", "meum"),
-//    List("jina", "pina", "pint", "pent", "peat", "prat", "pray"),
+    List("bitt", "batt", "natt", "naut", "gaut", "gaum", "geum", "meum"),
+    List("jina", "pina", "pint", "pent", "peat", "prat", "pray"),
     List("fike", "fake", "cake", "came", "camp"),
     List("flem", "alem")
   )

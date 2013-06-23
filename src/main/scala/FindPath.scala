@@ -8,6 +8,8 @@ import ExecutionContext.Implicits.global
 
 import com.typesafe.scalalogging.slf4j.Logging
 
+import scala.annotation.tailrec
+
 /**
  * Look for the shortest path >from< word >to< word by
  * doing a breadth first search.
@@ -31,17 +33,38 @@ object FindPath extends Logging {
     Source.fromFile(fileName).getLines.filter(_.length == wordLength).map(_.toLowerCase).toList.distinct
   }
 
+  @tailrec
   final def findPath(toWord: String, allNeighbors: Map[String, List[String]], currentPaths: List[List[String]]): List[String] = {
-    currentPaths.find(_.last == toWord).getOrElse {
-      val nextPaths = currentPaths.map {path =>
-        allNeighbors(path.last).diff(path).map(n => path :+ n)
-      }.flatten
+    val solution = currentPaths.find(_.last == toWord).getOrElse(List())
+    if(!solution.isEmpty) solution
+    else {
+      val nextPaths = currentPaths.map(path => {
+        val n = allNeighbors(path.last)
+        logger.trace(path.length + ": " + path.last + " neighbors: (" + n.size + ") " + n.mkString(","))
+        n.diff(path).par.map(n => path :+ n) // the diff is to eliminate loops
+      }).flatten
+      logger.trace(nextPaths(0).size + ": nextPaths: " + nextPaths.size + "/" + dedup(nextPaths).size)
+/*
       for(p <- nextPaths) {
-        logger.trace(p.mkString("->"))
+        logger.trace("(" + nextPaths.size + "/" + p.size + "): " + p.mkString("->"))
         assert(p.size == p.distinct.size, "Loop detected: " + p.mkString("->"))
       }
-      findPath(toWord, allNeighbors, nextPaths)
+*/
+      findPath(toWord, allNeighbors, dedup(nextPaths))
     }
+  }
+
+  /* This function dedups the solution space.
+   *
+   * Means it looks for pathes that have resulted in the same last word (so far) and eliminates
+   * all but one. With this we will find acclerate to find *A* shortest path.
+   *
+   * NOTE: To find *ALL* shortest path you cannot use this trick. And then (so far) I am struggling
+   * to make all possible solutions fit into main mem.
+   */
+  def dedup(paths: List[List[String]]): List[List[String]] = {
+    val uniqueEndpointsSoFar = paths.map(_.last).distinct
+    uniqueEndpointsSoFar.map(word => paths.find(_.last == word).get)
   }
 
   final def main(args: Array[String]): Unit = {
