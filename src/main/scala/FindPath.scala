@@ -58,9 +58,9 @@ object FindPath extends Logging {
   final def findPath(toWord: String, allNeighbors: Map[String, List[String]], currentPaths: List[List[String]]): List[String] = {
     logger.debug("FindPath (PathLength/NumberOfPaths): " + currentPaths(0).size + "/" + currentPaths.size)
     currentPaths.find(_.last == toWord).getOrElse {
-      val nextPaths = currentPaths.map(path =>
+      val nextPaths = currentPaths.flatMap(path =>
         allNeighbors(path.last).diff(path).map(n => path :+ n) // the diff is to eliminate loops
-      ).flatten
+      )
       findPath(toWord, allNeighbors, dedup(nextPaths))
     }
   }
